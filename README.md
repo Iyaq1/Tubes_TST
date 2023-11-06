@@ -1,2 +1,2 @@
-# Tubes_TST
+# Tubes_Teknologi_Sistem_Terintegrasi
 Layanan berikut adalah layanan untuk pelaksanaan dan penilaiaan kuis. Peserta melihat pertanyaan dengan menggunakan Read Questions dengan path /questions/{questions number}. Kemudian peserta menjawab dengan method post Add Answer. Peserta bisa melihat jawabannya dengan Get All Answer dan merubah jawabannya dengan method put Change Answer. Untuk melihat score digunakan method score dan untuk menghapus semua jawaban digunakan method delete answer.
