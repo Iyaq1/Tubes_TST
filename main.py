@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse
 from auth import oauth2_router as auth_router
 from auth import get_current_user
 from auth import User
+import requests
 app = FastAPI()
 app.include_router(auth_router)
 
@@ -117,7 +118,7 @@ async def get_score(course_id = int,user = Depends(get_current_user)):
 		return "course not found"	
 	for answer_list in answer_data:
 		for question_list in (question_data_this):
-			if ((answer_list['answer'] == question_list['correct_answer'] ) and (answer_list['id'] == question_list['id']  ) and (answer_list["course_id"] == course_id)):
+			if ((answer_list['answer'] == question_list['correct_answer'] ) and (answer_list['id'] == question_list['id']  ) and (answer_list["course_id"] == course_id) and (answer_list["student"] == user["id"])):
 				score += question_list['score_weight']
 	return score
 	
@@ -168,10 +169,16 @@ async def add_question(course_id : int ,questions : Questions,  user = Depends(g
 		return "Access denied"
 	question_dict = questions.dict()
 	question_found = False
+	course_found = False
 	for course in question_data:
 		if course["id"] == course_id:
 			question_data_this = course["question"]
+			course_found = True
 			break
+	if not(course_found):
+		raise HTTPException(
+			status_code=404, detail=f'item not found'
+		)
 
 	for questions_list in question_data_this:
 		if questions_list['id'] == question_dict['id']:
@@ -219,3 +226,23 @@ async def add_course(first_question : Questions,user = Depends(get_current_user)
 	with open(question_filename,"w") as write_file:
 		json.dump(question_data, write_file)
 	return "success"
+
+
+def get_integration_token():
+	body = {"username" : "aish", "password" : "123456"}
+	response = requests.post("http://cutlerydesign.fxbabyapbzgzfnhp.southeastasia.azurecontainer.io/token", data = body )
+	token = response.json().get("access_token")
+	return token
+
+
+@app.get('/picture')
+async def get_picture(user = Depends(get_current_user)):
+	token = get_integration_token()
+	headers = {"Authorization": f"Bearer {token}"}
+	response = requests.get("http://cutlerydesign.fxbabyapbzgzfnhp.southeastasia.azurecontainer.io/requirements/", headers=headers)
+	
+	if response.status_code == 200:
+		return response.json
+	else:
+		raise HTTPException(status_code=response.status_code, detail="Error getting from outside service.")
+

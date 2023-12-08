@@ -8,6 +8,7 @@ from typing import Annotated
 import jwt
 from typing import Union
 from passlib.context import CryptContext
+import requests
 
 oauth2_router = APIRouter()
 
@@ -26,6 +27,10 @@ class UserAccountInput(BaseModel):
     username: str
     password : str
     admin : bool
+
+class UserAccountInputOutside(BaseModel):
+    username: str
+    password : str
 
 json_filename="user.JSON"
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
@@ -123,20 +128,19 @@ async def get_current_user(token : Annotated[str, Depends(oauth2_scheme)]):
             return item
     raise credentials_exception
 
+@oauth2_router.post("/token", response_model=Token)
+async def create_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    user = get_user_from_input(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expiring = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = add_access_token(
+    data={"sub": user["username"], "id" : user["id"]}, expires_delta=access_token_expiring
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
-# @oauth2_router.delete("/users")
-# async def delete_user(username :str):
-#     username_found = False
-
-#     for idx, item in enumerate(userdata):
-#         if username == item['username']:
-#             username_found = True
-#             userdata.pop(idx)
-#             with open(json_filename,"w") as write_file:
-#                 json.dump(userdata, write_file)
-            
-                 
-#     if not(username_found) :
-#         return "username not found"
-#     return "success"
 
